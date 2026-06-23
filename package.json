@@ -1,0 +1,40 @@
+{
+  "name": "driver-booking-bot",
+  "version": "1.0.0",
+  "description": "Production-ready WhatsApp Driver Booking Bot using Node.js, Express, Google Calendar API, and WhatsApp Cloud API",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "lint": "eslint . --ext .js"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "axios": "^1.7.2",
+    "chrono-node": "^2.7.6",
+    "dayjs": "^1.11.11",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "googleapis": "^140.0.1",
+    "morgan": "^1.10.0",
+    "uuid": "^10.0.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "eslint": "^9.6.0"
+  },
+  "keywords": [
+    "whatsapp",
+    "bot",
+    "booking",
+    "google-calendar",
+    "driver",
+    "nodejs",
+    "express"
+  ],
+  "author": "Driver Booking Bot",
+  "license": "MIT"
+}

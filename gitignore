@@ -1,0 +1,28 @@
+# Environment variables — NEVER commit this
+.env
+
+# Node modules
+node_modules/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Editor directories
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Runtime data
+pids/
+*.pid
+
+# Build output
+dist/
+build/
