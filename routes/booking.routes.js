@@ -17,7 +17,7 @@
  *   interpret the literal string "availability" as a :ref parameter value.
  * ─────────────────────────────────────────────────────────────────────────────
  */
-
+console.log("✅ booking.routes.js LOADED");
 import { Router } from 'express';
 import {
   listBookings,

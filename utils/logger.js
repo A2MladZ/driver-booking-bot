@@ -20,6 +20,7 @@
  */
 
 import config from '../config/env.js';
+import { getPool, sql } from '../config/sqlPool.js';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Log level constants and priority ordering
@@ -59,6 +60,35 @@ const LEVEL_COLOURS = {
   INFO:  COLOURS.blue,
   WARN:  COLOURS.yellow,
   ERROR: COLOURS.red,
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SQL Server persistence
+// ─────────────────────────────────────────────────────────────────────────────
+
+const writeToSql = async (level, message, meta, timestamp) => {
+  try {
+    const pool = await getPool();
+
+    await pool
+      .request()
+      .input('level', sql.NVarChar(20), level)
+      .input('message', sql.NVarChar(sql.MAX), message)
+      .input(
+        'meta',
+        sql.NVarChar(sql.MAX),
+        Object.keys(meta).length ? JSON.stringify(meta) : null
+      )
+      .input('timestamp', sql.DateTime2, new Date(timestamp))
+      .query(`
+        INSERT INTO ApplicationLogs
+        (Level, Message, Meta, Timestamp)
+        VALUES
+        (@level, @message, @meta, @timestamp)
+      `);
+  } catch (err) {
+    // Ignore SQL failures so logging never crashes the app
+  }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -118,6 +148,8 @@ const log = (level, message, meta = {}) => {
       console.log(output);
     }
   }
+
+  writeToSql(level, message, meta, timestamp);
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

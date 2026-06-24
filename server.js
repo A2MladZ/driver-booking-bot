@@ -25,7 +25,19 @@ import healthRoutes  from './routes/health.routes.js';
 // ── Global error handler middleware ──────────────────────────────────────────
 import { errorHandler } from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
+import sql from "mssql";
+import dbConfig from "./config/db.js";
 
+async function connectDB() {
+  try {
+    await sql.connect(dbConfig);
+    console.log("✅ Connected to SQL Server");
+  } catch (err) {
+    console.log("❌ DB Connection Failed:", err);
+  }
+}
+
+connectDB();
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. Validate critical environment variables at startup
 // ─────────────────────────────────────────────────────────────────────────────
@@ -95,7 +107,7 @@ app.use((_req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 // 4. Route registration
 // ─────────────────────────────────────────────────────────────────────────────
-
+console.log("👉 REGISTERING ROUTES NOW");
 /**
  * Health-check — no auth required.
  * GET /health  →  200 { status: "ok", uptime: ... }
@@ -117,7 +129,7 @@ app.use('/api/v1/webhook', webhookRoutes);
  * DELETE /api/v1/bookings/:ref     →  cancel booking
  */
 app.use('/api/v1/bookings', bookingRoutes);
-
+console.log("👉 booking route mounted at /api/v1/bookings");
 // ─────────────────────────────────────────────────────────────────────────────
 // 5. 404 and global error handlers (must be registered LAST)
 // ─────────────────────────────────────────────────────────────────────────────

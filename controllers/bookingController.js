@@ -126,13 +126,14 @@ const formatZodErrors = (zodError) =>
  *   GET /api/v1/bookings?phone=919876543210
  *   GET /api/v1/bookings?phone=919876543210&includePast=true
  */
-const listBookings = async (req, res) => {
-  // ── Validate query params ─────────────────────────────────────────────────
-  const parsed = listQuerySchema.safeParse(req.query);
-  if (!parsed.success) {
-    return fail(res, formatZodErrors(parsed.error));
-  }
-
+console.log("🔥 listBookings HIT");
+export const listBookings = async (req, res) => {
+  return res.json({
+    success: true,
+    message: "CONTROLLER WORKS 🚀",
+    query: req.query
+  });
+};
   const { phone, includePast } = parsed.data;
 
   if (!phone) {
@@ -151,7 +152,7 @@ const listBookings = async (req, res) => {
     count:    result.bookings.length,
     bookings: result.bookings,
   });
-};
+;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 2. GET /api/v1/bookings/:ref
