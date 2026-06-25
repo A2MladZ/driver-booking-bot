@@ -30,7 +30,6 @@ const linkClass = ({ isActive }) =>
 export default function App() {
   const [showPalette, setShowPalette] = useState(false);
 
-  // Global Ctrl+K / Cmd+K listener
   useEffect(() => {
     const handler = (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
@@ -45,9 +44,8 @@ export default function App() {
   return (
     <div className="flex h-screen overflow-hidden">
 
-      {/* ── Sidebar ── */}<aside className="w-60 shrink-0 bg-[#FFCC00] border-r border-[#B13BFF] flex flex-col">
-      
-        {/* Logo */}
+      <aside className="w-60 shrink-0 bg-[#FFCC00] border-r border-[#B13BFF] flex flex-col">
+
         <div className="flex items-center gap-2.5 px-5 py-5 border-b border-gray-800">
           <Bot className="text-[#471396]" size={24} />
           <span className="font-bold text-[#090040] text-base leading-tight">
@@ -56,7 +54,6 @@ export default function App() {
           </span>
         </div>
 
-        {/* Search trigger */}
         <div className="px-3 pt-3">
           <button
             onClick={() => setShowPalette(true)}
@@ -68,7 +65,6 @@ export default function App() {
           </button>
         </div>
 
-        {/* Nav */}
         <nav className="flex-1 px-3 py-3 space-y-1">
           {NAV.map(({ to, icon: Icon, label }) => (
             <NavLink key={to} to={to} end={to === '/'} className={linkClass}>
@@ -78,13 +74,11 @@ export default function App() {
           ))}
         </nav>
 
-        {/* Footer */}
         <div className="px-5 py-4 border-t border-[#550000] text-xs text-gray-500">
           Driver Booking Bot v1.0
         </div>
       </aside>
 
-      {/* ── Main content ── */}
       <main className="flex-1 overflow-y-auto bg-[#090040] p-6">
         <Routes>
           <Route path="/"             element={<Dashboard />}    />
@@ -96,7 +90,6 @@ export default function App() {
         </Routes>
       </main>
 
-      {/* ── Command Palette ── */}
       {showPalette && <CommandPalette onClose={() => setShowPalette(false)} />}
 
     </div>

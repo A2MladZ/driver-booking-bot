@@ -53,23 +53,22 @@ router.get('/', (_req, res) => {
     },
     environment: config.nodeEnv,
     services: {
-      // These show configuration status, not live connectivity.
-      // For live connectivity checks, see verifyCalendarConnection() in startup.
-      whatsapp: {
-        configured: Boolean(config.whatsapp.accessToken),
-        phoneNumberId: config.whatsapp.phoneNumberId,
-        apiVersion:    config.whatsapp.apiVersion,
-      },
       googleCalendar: {
-        configured: Boolean(config.google.privateKey),
-        calendarId: config.google.calendarId,
-      },
-      driver: {
-        timezone:       config.driver.timezone,
-        workingHours:  `${config.driver.workStart} – ${config.driver.workEnd}`,
-        minSlotMinutes: config.driver.minSlotMinutes,
-      },
+      configured: Boolean(config.google.privateKey),
+      calendarId: config.google.calendarId,
+  },
+
+    googleChat: {
+      configured: Boolean(config.googleChat.projectNumber),
+      projectNumber: config.googleChat.projectNumber,
     },
+
+    driver: {
+      timezone: config.driver.timezone,
+      workingHours: `${config.driver.workStart} – ${config.driver.workEnd}`,
+      minSlotMinutes: config.driver.minSlotMinutes,
+    },
+},
     memory: {
       // Useful for spotting memory leaks in long-running processes
       heapUsedMB:  Math.round(process.memoryUsage().heapUsed  / 1024 / 1024),

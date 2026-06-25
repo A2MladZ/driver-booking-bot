@@ -19,7 +19,7 @@ const Row = ({ label, value, ok }) => (
       {ok !== undefined && <StatusDot ok={ok} />}
       {label}
     </div>
-    <span className="text-gray-200 font-mono text-xs">{value}</span>
+    <span className="text-gray-200 font-mono text-xs">{String(value ?? '—')}</span>
   </div>
 );
 
@@ -28,7 +28,7 @@ export default function Health() {
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(false);
 
-  const fetch = async () => {
+  const load = async () => {
     setLoading(true);
     setError(false);
     try {
@@ -41,20 +41,18 @@ export default function Health() {
     }
   };
 
-  useEffect(() => { fetch(); }, []);
+  useEffect(() => { load(); }, []);
 
   return (
     <div className="max-w-2xl">
       <div className="flex items-center justify-between mb-1">
         <h1 className="text-xl font-bold text-white">Health</h1>
         <button
-          onClick={fetch}
+          onClick={load}
           disabled={loading}
           className="flex items-center gap-1.5 text-sm text-gray-400 hover:text-white transition-colors disabled:opacity-50"
         >
-          {loading
-            ? <Loader size={14} className="animate-spin" />
-            : <RefreshCw size={14} />}
+          {loading ? <Loader size={14} className="animate-spin" /> : <RefreshCw size={14} />}
           Refresh
         </button>
       </div>
@@ -81,14 +79,13 @@ export default function Health() {
             <Row label="RSS"        value={`${data.memory.rssMB} MB`} />
           </Section>
 
-          <Section title="WhatsApp">
-            <Row label="Configured"    value={data.services.whatsapp.configured ? 'Yes' : 'No'} ok={data.services.whatsapp.configured} />
-            <Row label="API Version"   value={data.services.whatsapp.apiVersion} />
-            <Row label="Phone Number ID" value={data.services.whatsapp.phoneNumberId} />
+          <Section title="Google Chat">
+            <Row label="Configured"      value={data.services.googleChat.configured ? 'Yes' : 'No'} ok={data.services.googleChat.configured} />
+            <Row label="Project Number"  value={data.services.googleChat.projectNumber} />
           </Section>
 
           <Section title="Google Calendar">
-            <Row label="Configured" value={data.services.googleCalendar.configured ? 'Yes' : 'No'} ok={data.services.googleCalendar.configured} />
+            <Row label="Configured"  value={data.services.googleCalendar.configured ? 'Yes' : 'No'} ok={data.services.googleCalendar.configured} />
             <Row label="Calendar ID" value={data.services.googleCalendar.calendarId} />
           </Section>
 
