@@ -69,25 +69,17 @@ const LEVEL_COLOURS = {
 const writeToSql = async (level, message, meta, timestamp) => {
   try {
     const pool = await getPool();
-
-    await pool
-      .request()
-      .input('level', sql.NVarChar(20), level)
-      .input('message', sql.NVarChar(sql.MAX), message)
-      .input(
-        'meta',
-        sql.NVarChar(sql.MAX),
-        Object.keys(meta).length ? JSON.stringify(meta) : null
-      )
-      .input('timestamp', sql.DateTime2, new Date(timestamp))
+    await pool.request()
+      .input('Level',    sql.NVarChar(50),      level)
+      .input('Message',  sql.NVarChar(sql.MAX),  message)
+      .input('Metadata', sql.NVarChar(sql.MAX),  Object.keys(meta).length > 0 ? JSON.stringify(meta) : null)
+      .input('CreatedAt',sql.DateTime2,          new Date(timestamp))
       .query(`
-        INSERT INTO ApplicationLogs
-        (Level, Message, Meta, Timestamp)
-        VALUES
-        (@level, @message, @meta, @timestamp)
+        INSERT INTO ApplicationLogs (Level, Message, Metadata, CreatedAt)
+        VALUES (@Level, @Message, @Metadata, @CreatedAt)
       `);
-  } catch (err) {
-    // Ignore SQL failures so logging never crashes the app
+  } catch {
+    // SQL unavailable — silently ignore, console output already written
   }
 };
 

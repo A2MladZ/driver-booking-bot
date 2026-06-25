@@ -1,32 +1,57 @@
+/**
+ * server.js
+ */
+
 import 'dotenv/config';
 import express from 'express';
 import morgan from 'morgan';
-import sql from "mssql";
+import sql from 'mssql';
+import dbConfig from './config/db.js';
 
 import webhookRoutes from './routes/webhook.routes.js';
 import bookingRoutes from './routes/booking.routes.js';
-import healthRoutes from './routes/health.routes.js';
+import healthRoutes  from './routes/health.routes.js';
 
-import { errorHandler } from './middleware/errorHandler.js';
+import { errorHandler }    from './middleware/errorHandler.js';
 import { notFoundHandler } from './middleware/notFoundHandler.js';
-import dbConfig from "./config/db.js";
 
-// ─────────────────────────────────────────────────────────────
-// DB CONNECTION (FIXED)
-// ─────────────────────────────────────────────────────────────
+import logger from './utils/logger.js';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SSE — activity event bus
+// ─────────────────────────────────────────────────────────────────────────────
+
+const sseClients = new Set();
+
+/**
+ * Broadcast a live activity event to all connected SSE clients.
+ * type: 'booking_created' | 'booking_cancelled' | 'whatsapp_message' |
+ *       'calendar_sync'   | 'system_error'       | 'system_info'
+ */
+export const broadcastEvent = (type, payload) => {
+  const data = JSON.stringify({ type, payload, ts: new Date().toISOString() });
+  for (const res of sseClients) {
+    try { res.write(`data: ${data}\n\n`); } catch { sseClients.delete(res); }
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// DB
+// ─────────────────────────────────────────────────────────────────────────────
 async function connectDB() {
   try {
     await sql.connect(dbConfig);
-    console.log("✅ Connected to SQL Server");
+    logger.info('Connected to SQL Server', { source: 'server' });
   } catch (err) {
-    console.error("❌ DB Connection Failed:", err);
-    process.exit(1); // 🔥 stop server if DB is critical
+    logger.error('DB Connection Failed', { source: 'server', error: err.message });
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// ENV VALIDATION
-// ─────────────────────────────────────────────────────────────
+await connectDB();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Env validation
+// ─────────────────────────────────────────────────────────────────────────────
 const REQUIRED_ENV = [
   'PORT',
   'WHATSAPP_ACCESS_TOKEN',
@@ -39,19 +64,16 @@ const REQUIRED_ENV = [
 
 const missingEnv = REQUIRED_ENV.filter((key) => !process.env[key]);
 if (missingEnv.length > 0) {
-  console.error(`[server] ❌ Missing env vars:\n  ${missingEnv.join('\n  ')}`);
+  console.error(`[server] ❌ Missing required environment variables:\n  ${missingEnv.join('\n  ')}`);
   process.exit(1);
 }
 
-// ─────────────────────────────────────────────────────────────
-// EXPRESS APP
-// ─────────────────────────────────────────────────────────────
-const app = express();
+// ─────────────────────────────────────────────────────────────────────────────
+// Express app
+// ─────────────────────────────────────────────────────────────────────────────
+const app  = express();
 const PORT = process.env.PORT || 3000;
 
-// ─────────────────────────────────────────────────────────────
-// MIDDLEWARE
-// ─────────────────────────────────────────────────────────────
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
@@ -63,62 +85,74 @@ app.use((_req, res, next) => {
   next();
 });
 
-// ─────────────────────────────────────────────────────────────
-// ROUTES
-// ─────────────────────────────────────────────────────────────
-app.use('/health', healthRoutes);
-app.use('/api/v1/webhook', webhookRoutes);
+// ─────────────────────────────────────────────────────────────────────────────
+// SSE route — GET /api/v1/events
+// ─────────────────────────────────────────────────────────────────────────────
+app.get('/api/v1/events', (req, res) => {
+  res.setHeader('Content-Type',  'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection',    'keep-alive');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.flushHeaders();
+
+  // Send a heartbeat immediately so the client knows it's connected
+  res.write(`data: ${JSON.stringify({ type: 'connected', ts: new Date().toISOString() })}\n\n`);
+
+  sseClients.add(res);
+
+  // Heartbeat every 25 s to prevent proxy timeouts
+  const hb = setInterval(() => {
+    try { res.write(': heartbeat\n\n'); } catch { clearInterval(hb); }
+  }, 25_000);
+
+  req.on('close', () => {
+    clearInterval(hb);
+    sseClients.delete(res);
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Routes
+// ─────────────────────────────────────────────────────────────────────────────
+app.use('/health',          healthRoutes);
+app.use('/api/v1/webhook',  webhookRoutes);
 app.use('/api/v1/bookings', bookingRoutes);
 
-// ─────────────────────────────────────────────────────────────
-// ERROR HANDLERS
-// ─────────────────────────────────────────────────────────────
 app.use(notFoundHandler);
 app.use(errorHandler);
 
-// ─────────────────────────────────────────────────────────────
-// START SERVER (FIXED BOOT ORDER)
-// ─────────────────────────────────────────────────────────────
-async function startServer() {
-  await connectDB(); // 🔥 IMPORTANT FIX
+// ─────────────────────────────────────────────────────────────────────────────
+// Start
+// ─────────────────────────────────────────────────────────────────────────────
+const server = app.listen(PORT, () => {
+  logger.info(`Driver Booking Bot listening on port ${PORT}`,           { source: 'server' });
+  logger.info(`Environment : ${process.env.NODE_ENV || 'development'}`, { source: 'server' });
+  logger.info(`Calendar ID : ${process.env.GOOGLE_CALENDAR_ID}`,       { source: 'server' });
+  logger.info(`WA Phone ID : ${process.env.WHATSAPP_PHONE_NUMBER_ID}`, { source: 'server' });
+});
 
-  const server = app.listen(PORT, () => {
-    console.log(`[server] ✅ Driver Booking Bot running on ${PORT}`);
-    console.log(`[server] 🌍 ${process.env.NODE_ENV || 'development'}`);
+// ─────────────────────────────────────────────────────────────────────────────
+// Graceful shutdown
+// ─────────────────────────────────────────────────────────────────────────────
+const shutdown = (signal) => {
+  logger.warn(`Received ${signal}. Shutting down gracefully…`, { source: 'server' });
+  server.close(() => {
+    logger.info('HTTP server closed. Goodbye.', { source: 'server' });
+    process.exit(0);
   });
+  setTimeout(() => { process.exit(1); }, 10_000);
+};
 
-  // ───────── graceful shutdown ─────────
-  const shutdown = (signal) => {
-    console.log(`\n[server] 🛑 ${signal} received`);
-    server.close(() => {
-      console.log('[server] 👋 Server closed');
-      process.exit(0);
-    });
+process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT',  () => shutdown('SIGINT'));
 
-    setTimeout(() => {
-      console.error('[server] ⚠️ Forced shutdown');
-      process.exit(1);
-    }, 10000);
-  };
+process.on('unhandledRejection', (reason) => {
+  logger.error('Unhandled Promise Rejection', { source: 'server', reason: String(reason) });
+});
 
-  process.on('SIGTERM', () => shutdown('SIGTERM'));
-  process.on('SIGINT', () => shutdown('SIGINT'));
-
-  process.on('unhandledRejection', (reason) => {
-    console.error('[server] 🔥 Unhandled Rejection:', reason);
-  });
-
-  process.on('uncaughtException', (err) => {
-    console.error('[server] 💥 Uncaught Exception:', err);
-    process.exit(1);
-  });
-
-  return server;
-}
-
-// ─────────────────────────────────────────────────────────────
-// BOOT APP
-// ─────────────────────────────────────────────────────────────
-startServer();
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught Exception', { source: 'server', error: err.message });
+  process.exit(1);
+});
 
 export default app;

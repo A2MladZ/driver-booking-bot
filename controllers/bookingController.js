@@ -25,11 +25,23 @@ import {
   getBookingsByPhone,
 } from '../services/calendarService.js';
 import { parseDate } from '../utils/dateParser.js';
-
+import { broadcastEvent } from '../server.js';
 // ─────────────────────────────────────────────────────────────────────────────
 // Zod validation schemas
 // ─────────────────────────────────────────────────────────────────────────────
+import { getAllBookings } from '../services/calendarService.js'; // add to existing import
 
+// GET /api/v1/bookings/all?timeMin=...&timeMax=...
+export const listAllBookings = async (req, res, next) => {
+  try {
+    const { timeMin, timeMax } = req.query;
+    const result = await getAllBookings(timeMin, timeMax);
+    if (!result.success) return res.status(502).json({ error: result.error });
+    res.json({ data: { bookings: result.bookings } });
+  } catch (err) {
+    next(err);
+  }
+};
 const bookingRefSchema = z
   .string()
   .regex(/^BK-[0-9a-f]{8}$/i, 'Invalid booking reference format. Expected: BK-xxxxxxxx');
@@ -66,6 +78,7 @@ const fail = (res, error, status = 400) => res.status(status).json({ success: fa
 
 const formatZodErrors = (zodError) =>
   zodError.issues.map((i) => `${i.path.join('.')}: ${i.message}`);
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // 1. GET /api/v1/bookings
@@ -121,6 +134,7 @@ const getBooking = async (req, res) => {
 
 const deleteBooking = async (req, res) => {
   const refParsed = bookingRefSchema.safeParse(req.params.ref);
+
   if (!refParsed.success) {
     return fail(res, refParsed.error.issues[0].message);
   }
@@ -128,13 +142,19 @@ const deleteBooking = async (req, res) => {
   const bookingRef = refParsed.data.toUpperCase();
 
   const bodyParsed = adminCancelSchema.safeParse(req.body);
+
   if (!bodyParsed.success) {
     return fail(res, formatZodErrors(bodyParsed.error));
   }
 
-  const { booking: existingBooking, error: findError } = await getBookingByRef(bookingRef);
-  if (findError)       return fail(res, findError, 502);
-  if (!existingBooking) return fail(res, `No booking found with reference ${bookingRef}`, 404);
+  const { booking: existingBooking, error: findError } =
+    await getBookingByRef(bookingRef);
+
+  if (findError) return fail(res, findError, 502);
+
+  if (!existingBooking) {
+    return fail(res, `No booking found with reference ${bookingRef}`, 404);
+  }
 
   const result = await cancelBooking({
     bookingRef,
@@ -142,6 +162,11 @@ const deleteBooking = async (req, res) => {
   });
 
   if (!result.success) return fail(res, result.error);
+
+  broadcastEvent('booking_cancelled', {
+    bookingRef,
+    message: `Booking ${bookingRef} cancelled`,
+  });
 
   return ok(res, {
     message: `Booking ${bookingRef} has been cancelled`,
@@ -182,6 +207,7 @@ const checkAvailability = async (req, res) => {
 
 const createBookingAdmin = async (req, res) => {
   const bodyParsed = createBookingBodySchema.safeParse(req.body);
+
   if (!bodyParsed.success) {
     return fail(res, formatZodErrors(bodyParsed.error));
   }
@@ -196,10 +222,23 @@ const createBookingAdmin = async (req, res) => {
     return fail(res, 'startISO must be in the future');
   }
 
-  const result = await createBooking({ startISO, endISO, customerPhone, customerName });
+  const result = await createBooking({
+    startISO,
+    endISO,
+    customerPhone,
+    customerName,
+  });
+
   if (!result.success) return fail(res, result.error);
 
-  return ok(res, { booking: result.booking }, 201);
+  const booking = result.booking;
+
+  broadcastEvent('booking_created', {
+    bookingRef: booking.bookingRef,
+    message: `${booking.customerName} booked ${booking.displaySlot}`,
+  });
+
+  return ok(res, { booking }, 201);
 };
 
 // ─────────────────────────────────────────────────────────────────────────────

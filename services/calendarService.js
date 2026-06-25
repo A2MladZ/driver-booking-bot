@@ -570,6 +570,43 @@ const getBookingsByPhone = async (customerPhone, includePast = false) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// 7. List ALL bookings (for admin calendar view)
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * getAllBookings()
+ * Returns all bookings within a time window (default: -7 days → +90 days).
+ * Used by the admin frontend calendar view.
+ *
+ * @param {string} [timeMin] - ISO string, defaults to 7 days ago
+ * @param {string} [timeMax] - ISO string, defaults to 90 days from now
+ * @returns {Promise<{ success: boolean, bookings?: Booking[], error?: string }>}
+ */
+const getAllBookings = async (timeMin, timeMax) => {
+  try {
+    const min = timeMin ?? dayjs().tz(TZ).subtract(7, 'day').toISOString();
+    const max = timeMax ?? dayjs().tz(TZ).add(90, 'day').toISOString();
+
+    const response = await calendar.events.list({
+      calendarId,
+      timeMin:      min,
+      timeMax:      max,
+      singleEvents: true,
+      orderBy:      'startTime',
+      maxResults:   250,
+      showDeleted:  false,
+    });
+
+    const events   = response.data?.items ?? [];
+    const bookings = events.map(eventToBooking).filter(Boolean);
+
+    return { success: true, bookings };
+  } catch (err) {
+    console.error('[calendarService] getAllBookings failed:', err.message);
+    return { success: false, error: 'Could not retrieve bookings.' };
+  }
+};
+// ─────────────────────────────────────────────────────────────────────────────
 // Exports
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -580,4 +617,5 @@ export {
   cancelBooking,
   getBookingByRef,
   getBookingsByPhone,
+  getAllBookings,
 };
