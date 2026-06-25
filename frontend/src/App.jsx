@@ -23,8 +23,8 @@ const NAV = [
 const linkClass = ({ isActive }) =>
   `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors ${
     isActive
-      ? 'bg-[#550000] text-white'
-      : 'text-gray-400 hover:bg-[#005555] hover:text-white'
+      ? 'bg-[#471396] text-white'
+      : 'text-[#090040] hover:bg-[#B13BFF] hover:text-white'
   }`;
 
 export default function App() {
@@ -45,14 +45,14 @@ export default function App() {
   return (
     <div className="flex h-screen overflow-hidden">
 
-      {/* ── Sidebar ── */}
-      <aside className="w-60 shrink-0 bg-[#1a0505] border-r border-[#550000] flex flex-col">
+      {/* ── Sidebar ── */}<aside className="w-60 shrink-0 bg-[#FFCC00] border-r border-[#B13BFF] flex flex-col">
+      
         {/* Logo */}
         <div className="flex items-center gap-2.5 px-5 py-5 border-b border-gray-800">
-          <Bot className="text-[#005555]" size={24} />
-          <span className="font-bold text-white text-base leading-tight">
+          <Bot className="text-[#471396]" size={24} />
+          <span className="font-bold text-[#090040] text-base leading-tight">
             BookBot<br />
-            <span className="text-[#005555] font-normal text-xs">MainMenu</span>
+            <span className="text-[#471396] font-normal text-xs">MainMenu</span>
           </span>
         </div>
 
@@ -60,11 +60,11 @@ export default function App() {
         <div className="px-3 pt-3">
           <button
             onClick={() => setShowPalette(true)}
-            className="w-full flex items-center gap-2 px-3 py-2 bg-[#2a0a0a] hover:bg-[#550000] text-gray-400 hover:text-white rounded-lg text-sm transition-colors"
+            className="w-full flex items-center gap-2 px-3 py-2 bg-[#471396] hover:bg-[#B13BFF] text-white rounded-lg text-sm transition-colors"
           >
             <Search size={14} />
             <span className="flex-1 text-left">Search…</span>
-            <kbd className="text-[10px] bg-[#003f3f] text-white px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
+            <kbd className="text-[10px] bg-[#090040] text-[#FFCC00] px-1.5 py-0.5 rounded font-mono">⌘K</kbd>
           </button>
         </div>
 
@@ -85,7 +85,7 @@ export default function App() {
       </aside>
 
       {/* ── Main content ── */}
-      <main className="flex-1 overflow-y-auto bg-[#0f0f0f] p-6">
+      <main className="flex-1 overflow-y-auto bg-[#090040] p-6">
         <Routes>
           <Route path="/"             element={<Dashboard />}    />
           <Route path="/bookings"     element={<Bookings />}     />

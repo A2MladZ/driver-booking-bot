@@ -3,16 +3,11 @@
 @tailwind utilities;
 
 :root {
-  --maroon: #550000;
-  --maroon-dark: #3d0000;
-
-  --teal: #005555;
-  --teal-dark: #003f3f;
-
-  --bg: #0f0f0f;
-  --surface: #181818;
-
-  --text: #f5f5f5;
+  --bg: #090040;
+  --sidebar: #FFCC00;
+  --primary: #471396;
+  --secondary: #B13BFF;
+  --text: #ffffff;
 }
 
 body {
@@ -28,14 +23,14 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--surface);
+  background: #471396;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--teal);
+  background: #B13BFF;
   border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--teal-dark);
+  background: #FFCC00;
 }
